@@ -1,27 +1,30 @@
 const express = require("express");
-const fs = require("fs-extra");
-const path = require("path");
+const { exec } = require("child_process");
 const cors = require("cors");
-
 const app = express();
-app.use(express.json());
+const port = process.env.PORT || 3000;
+
 app.use(cors());
+app.use(express.json());
 
-const TEMPLATE_PATH = path.join(__dirname, "template");
-
-app.post("/criar-projeto", async (req, res) => {
-    const { nomeProjeto } = req.body;
-    if (!nomeProjeto) return res.status(400).json({ erro: "Nome do projeto é obrigatório" });
-
-    const destino = path.join(__dirname, "projetos", nomeProjeto);
-    try {
-        await fs.copy(TEMPLATE_PATH, destino);
-        return res.json({ sucesso: true, caminho: destino });
-    } catch (erro) {
-        return res.status(500).json({ erro: "Erro ao criar projeto", detalhes: erro.message });
-    }
+// Rota padrão
+app.get("/", (req, res) => {
+  res.send("API do Expor rodando com sucesso! 🚀");
 });
 
-app.listen(3000, () => {
-    console.log("Servidor rodando em http://localhost:3000");
+// Rota para criar um projeto Expo
+app.post("/criar-projeto", (req, res) => {
+  const { nome } = req.body;
+  if (!nome) return res.status(400).send("Nome do projeto é obrigatório");
+
+  exec(`npx create-expo-app ${nome}`, (err, stdout, stderr) => {
+    if (err) {
+      return res.status(500).send(`Erro ao criar projeto: ${stderr}`);
+    }
+    res.send(`Projeto ${nome} criado com sucesso!`);
+  });
+});
+
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
 });
